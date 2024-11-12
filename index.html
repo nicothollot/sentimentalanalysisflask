@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sentiment Analysis</title>
+    <script>
+        function analyzeSentiment() {
+            const ticker = document.getElementById("ticker").value;
+            const keyword = document.getElementById("keyword").value;
+
+            fetch('/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ticker, keyword })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById("result");
+                resultDiv.innerHTML = `<h3>Overall Sentiment: ${data.sentiment_label}</h3>
+                                       <p>Score: ${data.final_score.toFixed(2)}</p>
+                                       <h4>Articles:</h4>`;
+                data.articles.forEach(article => {
+                    resultDiv.innerHTML += `<div>
+                        <h5><a href="${article.link}" target="_blank">${article.title}</a></h5>
+                        <p>${article.summary}</p>
+                        <p>Sentiment: ${article.sentiment} (Score: ${article.score.toFixed(2)})</p>
+                    </div><hr>`;
+                });
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Sentiment Analysis</h1>
+    <form onsubmit="event.preventDefault(); analyzeSentiment();">
+        <label for="ticker">Ticker Symbol:</label>
+        <input type="text" id="ticker" name="ticker" required><br>
+        <label for="keyword">Keyword:</label>
+        <input type="text" id="keyword" name="keyword" required><br>
+        <button type="submit">Analyze</button>
+    </form>
+    <div id="result"></div>
+</body>
+</html>
