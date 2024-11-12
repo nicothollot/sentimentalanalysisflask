@@ -1,15 +1,14 @@
 from flask import Flask, render_template, request, jsonify
 import feedparser
+from transformers import pipeline
+import json
 
 app = Flask(__name__)
 
+# Initialize the FinBERT pipeline
+pipe = pipeline("text-classification", model="ProsusAI/finbert")
+
 def analyze_sentiment(ticker, keyword):
-    import torch
-    from transformers import pipeline
-
-    # Initialize the FinBERT pipeline dynamically to reduce memory usage
-    pipe = pipeline("text-classification", model="ProsusAI/finbert")
-
     # Yahoo Finance RSS feed URL
     rss_url = f'https://finance.yahoo.com/rss/headline?s={ticker}'
     feed = feedparser.parse(rss_url)
@@ -22,10 +21,9 @@ def analyze_sentiment(ticker, keyword):
         if keyword.lower() not in entry.summary.lower():
             continue
 
-        # Truncate the summary to limit memory usage
-        truncated_summary = entry.summary[:256]
+        # Truncate the summary to 512 tokens to avoid input size error
+        truncated_summary = entry.summary[:512]
 
-        # Perform sentiment analysis
         sentiment = pipe(truncated_summary)[0]
 
         # Collect article details and sentiment
@@ -64,19 +62,18 @@ def index():
     return render_template('index.html')
 
 @app.route('/analyze', methods=['POST'])
+@app.route('/analyze', methods=['POST'])
 def analyze():
-    data = request.get_json()
-    ticker = data.get('ticker')
-    keyword = data.get('keyword')
+    data = request.get_json()  # Get JSON data
+    ticker = data.get('ticker')  # Safely access 'ticker'
+    keyword = data.get('keyword')  # Safely access 'keyword'
 
     if not ticker or not keyword:
         return jsonify({"error": "Ticker and keyword are required"}), 400
 
-    try:
-        result = analyze_sentiment(ticker, keyword)
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    result = analyze_sentiment(ticker, keyword)
+    return jsonify(result)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
