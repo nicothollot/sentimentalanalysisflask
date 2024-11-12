@@ -1,12 +1,8 @@
-import os
 from flask import Flask, request, jsonify
 import feedparser
 from transformers import pipeline
 
 app = Flask(__name__)
-
-# Initialize the sentiment pipeline
-pipe = pipeline("text-classification", model="ProsusAI/finbert")
 
 @app.route('/sentiment', methods=['POST'])
 def analyze_sentiment():
@@ -14,9 +10,12 @@ def analyze_sentiment():
     ticker = data.get('ticker', 'AMD')
     keyword = data.get('keyword', 'AMD')
 
-    # Your existing RSS feed and sentiment logic
+    # Lazy load the pipeline
+    pipe = pipeline("text-classification", model="ProsusAI/finbert")
+
     rss_url = f'https://finance.yahoo.com/rss/headline?s={ticker}'
     feed = feedparser.parse(rss_url)
+
     total_score = 0
     num_articles = 0
 
@@ -42,5 +41,6 @@ def analyze_sentiment():
     return jsonify({'final_score': final_score, 'sentiment_label': sentiment_label})
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))  # Default to 5000 if PORT is not set
+    import os
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
